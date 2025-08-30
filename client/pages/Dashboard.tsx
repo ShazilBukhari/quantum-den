@@ -319,13 +319,11 @@ const recentActivity = useMemo(() =>
             </GlassCard>
 
             {/* Recent Resumes */}
+
             <GlassCard className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold">Your Resumes</h2>
-                <Button size="sm" onClick={createResume}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Resume
-                </Button>
+                
               </div>
 
               {recentResumes.length === 0 ? (
