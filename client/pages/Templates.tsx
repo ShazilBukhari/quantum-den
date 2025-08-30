@@ -100,11 +100,16 @@ export default function Templates() {
       return;
     }
     const plan = storage.getPlan(user.id);
-    const list = await data.getResumes(user.id);
-    if (plan === 'Free' && list.length >= 1) {
-      setShowUpgrade(true);
-      return;
-    }
+    // const list = await data.getResumes(user.id);
+    // if (plan === 'Free' && list.length >= 1) {
+    //   setShowUpgrade(true);
+    //   return;
+    // }
+  const list = await data.getResumes(user.id);
+if (list.length >= 1) {
+  setShowUpgrade(true); // free limit cross ho gaya
+  return;
+}
     setSelectedTemplate(templateId);
     setCurrentView('builder');
     setShowPreview(true);
