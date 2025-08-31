@@ -27,6 +27,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { data } from '@/lib/data';
 import { storage } from '@/utils/storage';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { supabase } from '@/lib/supabase'; // ya jahan tera client hain
+
 
 export default function Templates() {
   const previewRef = useRef<HTMLDivElement>(null);
@@ -95,22 +97,47 @@ export default function Templates() {
   ];
 
   const handleTemplateSelect = async (templateId: TemplateType) => {
-    if (!user) {
-      navigate('/signin');
-      return;
-    }
-    const profile = await data.getProfile(user.id);
-const plan = profile?.plan || "Free";
+  if (!user) {
+    navigate('/signin');
+    return;
+  }
 
-const list = await data.getResumes(user.id) || [];
-if (plan === 'Free' && list.length >= 1) {
-  setShowUpgrade(true);
-  return;
-}
-    setSelectedTemplate(templateId);
-    setCurrentView('builder');
-    setShowPreview(true);
-  };
+  // Profile fetch
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id);
+
+  let profileData = data?.[0]; // null check
+
+  if (!profileData) {
+    // Agar profile nahi hai, create it
+    const { data: newProfile, error: insertError } = await supabase
+      .from('profiles')
+      .insert([{ id: user.id, email: user.email, plan: 'Free' }])
+      .select('*');
+
+    profileData = newProfile?.[0];
+  }
+
+  const plan = profileData?.plan || 'Free';
+
+  // Resume list check
+  const { data: resumes } = await supabase
+    .from('resumes')
+    .select('*')
+    .eq('user_id', user.id);
+
+  if (plan === 'Free' && resumes?.length >= 1) {
+    setShowUpgrade(true);
+    return;
+  }
+
+  setSelectedTemplate(templateId);
+  setCurrentView('builder');
+  setShowPreview(true);
+};
+
 
   const handlePreview = () => {
     setShowPreview(true);

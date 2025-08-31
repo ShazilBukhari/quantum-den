@@ -17,6 +17,19 @@ import {
   Zap,
   CheckCircle
 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+
+// TypeScript type for Supabase auth response
+type SupabaseUser = {
+  id: string;
+  email?: string | null;
+};
+
+type SignInResponse = {
+  data?: { user: SupabaseUser } | null; // ✅ optional banaya
+  error: { message: string } | null;
+};
+
 
 export default function SignIn() {
   const { signIn, signInWithProvider, loading } = useAuth();
@@ -26,23 +39,22 @@ export default function SignIn() {
     password: '',
     rememberMe: false
   });
-  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isLoading, setIsLoading] = useState(false);
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
   };
 
   const validateForm = () => {
-    const newErrors: {[key: string]: string} = {};
+    const newErrors: { [key: string]: string } = {};
 
     if (!formData.email) {
       newErrors.email = 'Email is required';
-    } else if (!/\\S+@\\S+\\.\\S+/.test(formData.email)) {
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
     }
 
@@ -56,21 +68,40 @@ export default function SignIn() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleProfileInsert = async (user: SupabaseUser) => {
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile) {
+      const { data, error: insertError } = await supabase
+        .from('profiles')
+        .insert([{ id: user.id, plan: 'Free' }]);
+
+      if (insertError) console.error('Error inserting profile:', insertError);
+      else console.log('Profile created:', data);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!validateForm()) return;
 
     setIsLoading(true);
 
     try {
-      const { error } = await signIn(formData.email, formData.password);
+      const { data, error }: SignInResponse = await signIn(formData.email, formData.password);
 
       if (error) {
         setErrors({ general: error.message || 'Sign in failed. Please try again.' });
+      } else if (data?.user) {
+        await handleProfileInsert(data.user);
       }
-    } catch (error) {
+    } catch (err) {
       setErrors({ general: 'An unexpected error occurred. Please try again.' });
+      console.error(err);
     } finally {
       setIsLoading(false);
     }
@@ -78,13 +109,16 @@ export default function SignIn() {
 
   const handleSocialLogin = async (provider: 'google' | 'github') => {
     try {
-      const { error } = await signInWithProvider(provider);
+      const { data, error }: SignInResponse = await signInWithProvider(provider);
 
       if (error) {
-        setErrors({ general: error.message || `${provider} sign in failed. Please try again.` });
+        setErrors({ general: error.message || `${provider} sign in failed.` });
+      } else if (data?.user) {
+        await handleProfileInsert(data.user);
       }
-    } catch (error) {
+    } catch (err) {
       setErrors({ general: 'Social sign in failed. Please try again.' });
+      console.error(err);
     }
   };
 
@@ -153,14 +187,13 @@ export default function SignIn() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* General Error */}
               {errors.general && (
                 <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
                   {errors.general}
                 </div>
               )}
 
-              {/* Email Field */}
+              {/* Email */}
               <div className="space-y-2">
                 <Label htmlFor="email">Email address</Label>
                 <div className="relative">
@@ -175,12 +208,10 @@ export default function SignIn() {
                     data-auth="email-input"
                   />
                 </div>
-                {errors.email && (
-                  <p className="text-sm text-red-500">{errors.email}</p>
-                )}
+                {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
               </div>
 
-              {/* Password Field */}
+              {/* Password */}
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <div className="relative">
@@ -202,9 +233,7 @@ export default function SignIn() {
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-                {errors.password && (
-                  <p className="text-sm text-red-500">{errors.password}</p>
-                )}
+                {errors.password && <p className="text-sm text-red-500">{errors.password}</p>}
               </div>
 
               {/* Remember Me & Forgot Password */}
@@ -219,21 +248,13 @@ export default function SignIn() {
                     Remember me
                   </Label>
                 </div>
-                <Link 
-                  to="/forgot-password" 
-                  className="text-sm text-primary hover:underline"
-                >
+                <Link to="/forgot-password" className="text-sm text-primary hover:underline">
                   Forgot password?
                 </Link>
               </div>
 
               {/* Sign In Button */}
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={isLoading || loading}
-                data-auth="signin"
-              >
+              <Button type="submit" className="w-full" disabled={isLoading || loading} data-auth="signin">
                 {isLoading || loading ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -247,37 +268,13 @@ export default function SignIn() {
                 )}
               </Button>
 
-              {/* Divider */}
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-card text-muted-foreground">Or continue with</span>
-                </div>
-              </div>
-
               {/* Social Login */}
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => handleSocialLogin('google')}
-                  disabled={isLoading || loading}
-                  data-auth="google-signin"
-                >
-                  <Chrome className="h-4 w-4 mr-2" />
-                  Google
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                <Button type="button" variant="outline" onClick={() => handleSocialLogin('google')} disabled={isLoading || loading}>
+                  <Chrome className="h-4 w-4 mr-2" /> Google
                 </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => handleSocialLogin('github')}
-                  disabled={isLoading || loading}
-                  data-auth="github-signin"
-                >
-                  <Github className="h-4 w-4 mr-2" />
-                  GitHub
+                <Button type="button" variant="outline" onClick={() => handleSocialLogin('github')} disabled={isLoading || loading}>
+                  <Github className="h-4 w-4 mr-2" /> GitHub
                 </Button>
               </div>
             </form>
@@ -286,31 +283,12 @@ export default function SignIn() {
             <div className="mt-8 text-center">
               <p className="text-sm text-muted-foreground">
                 Don't have an account?{' '}
-                <Link 
-                  to="/get-started" 
-                  className="text-primary hover:underline font-medium"
-                  data-auth="signup-link"
-                >
+                <Link to="/get-started" className="text-primary hover:underline font-medium" data-auth="signup-link">
                   Sign up for free
                 </Link>
               </p>
             </div>
           </GlassCard>
-
-          {/* Mobile Benefits */}
-          <div className="lg:hidden mt-8">
-            <GlassCard className="p-6">
-              <h3 className="font-semibold mb-4 text-center">Join 50,000+ professionals</h3>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                {benefits.slice(0, 4).map((benefit, index) => (
-                  <div key={index} className="flex items-center space-x-2">
-                    <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
-                    <span className="text-muted-foreground">{benefit}</span>
-                  </div>
-                ))}
-              </div>
-            </GlassCard>
-          </div>
         </div>
       </div>
     </div>

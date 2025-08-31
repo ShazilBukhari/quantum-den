@@ -23,6 +23,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { data } from '@/lib/data';
 import { storage } from '@/utils/storage';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { supabase } from '@/lib/supabase';
 
 export default function Index() {
   const navigate = useNavigate();
