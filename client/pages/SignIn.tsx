@@ -114,20 +114,22 @@ export default function SignIn() {
 
   const handleSocialLogin = async (provider: 'google' | 'github') => {
   try {
-    const { data, error } = await signInWithProvider(provider);
+    const res: any = await signInWithProvider(provider); // <-- type any use kara
+    const user = res?.data?.user || res?.user || res?.session?.user;
 
-    if (error) {
-      setErrors({ general: error.message || `${provider} sign in failed.` });
-    } else if (data?.user) {
-      await handleProfileInsert(data.user); // Ye kaam karega sirf agar user object yahin hai
-    } else if (data?.session?.user) {
-      await handleProfileInsert(data.session.user); // Social login ke liye ye use karna
+    if (res.error) {
+      setErrors({ general: res.error.message || `${provider} sign in failed.` });
+    } else if (user) {
+      await handleProfileInsert(user);
+    } else {
+      setErrors({ general: 'User data not found after social login.' });
     }
   } catch (err) {
     setErrors({ general: 'Social sign in failed. Please try again.' });
     console.error(err);
   }
 };
+
 
 
   const benefits = [
