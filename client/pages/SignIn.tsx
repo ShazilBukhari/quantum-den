@@ -113,19 +113,22 @@ export default function SignIn() {
   };
 
   const handleSocialLogin = async (provider: 'google' | 'github') => {
-    try {
-      const { data, error }: SignInResponse = await signInWithProvider(provider);
+  try {
+    const { data, error } = await signInWithProvider(provider);
 
-      if (error) {
-        setErrors({ general: error.message || `${provider} sign in failed.` });
-      } else if (data?.user) {
-        await handleProfileInsert(data.user);
-      }
-    } catch (err) {
-      setErrors({ general: 'Social sign in failed. Please try again.' });
-      console.error(err);
+    if (error) {
+      setErrors({ general: error.message || `${provider} sign in failed.` });
+    } else if (data?.user) {
+      await handleProfileInsert(data.user); // Ye kaam karega sirf agar user object yahin hai
+    } else if (data?.session?.user) {
+      await handleProfileInsert(data.session.user); // Social login ke liye ye use karna
     }
-  };
+  } catch (err) {
+    setErrors({ general: 'Social sign in failed. Please try again.' });
+    console.error(err);
+  }
+};
+
 
   const benefits = [
     'Create unlimited resumes',
