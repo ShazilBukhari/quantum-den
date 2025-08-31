@@ -89,24 +89,44 @@ export default function Pricing() {
   };
 
   const handleStartFree = async () => {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user }, error } = await supabase.auth.getUser();
+  
   if (user?.id) {
-    await data.updateProfile(user.id, { plan: "Free" });
+    // Update profile in Supabase table
+    const { error: updateError } = await supabase
+      .from('profiles')            // table name jahan tera plan store hota
+      .update({ plan: "Free" })
+    // column name 'plan'
+      .eq('id', user.id);          // user id match
+    
+    if (updateError) {
+      console.error(updateError);
+    }
+
     navigate("/dashboard");
   } else {
     navigate("/get-started");
   }
 };
 
-  const handleGoPro = async () => {
-  const { data: { user } } = await supabase.auth.getUser();
+const handleGoPro = async () => {
+  const { data: { user }, error } = await supabase.auth.getUser();
+  
   if (user?.id) {
-    await data.updateProfile(user.id, { plan: "Pro" });
+    const { error: updateError } = await supabase
+      .from('profiles')        // tera table name jahan plan store hota
+      .update({ plan: "Pro" }) // column name 'plan'
+      .eq('id', user.id);      // id match karna
+
+    if (updateError) console.error(updateError);
+
     navigate("/dashboard");
   } else {
     navigate("/get-started?plan=pro");
   }
 };
+
+
 
   const handleCheckout = () => {
     // Simulate checkout process
@@ -152,36 +172,6 @@ export default function Pricing() {
               Cancel anytime with our 30-day money-back guarantee.
             </p>
           </div>
-
-          {/* Billing Toggle */}
-          {/* <div className="flex items-center justify-center mb-12">
-            <div className="flex items-center space-x-4">
-              <span className={`text-sm font-medium ${billingCycle === 'monthly' ? 'text-foreground' : 'text-muted-foreground'}`}>
-                Monthly
-              </span>
-              <button
-                onClick={() => setBillingCycle(billingCycle === 'monthly' ? 'yearly' : 'monthly')}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                  billingCycle === 'yearly' ? 'bg-primary' : 'bg-input'
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-background transition-transform ${
-                    billingCycle === 'yearly' ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-              <span className={`text-sm font-medium ${billingCycle === 'yearly' ? 'text-foreground' : 'text-muted-foreground'}`}>
-                Yearly
-              </span>
-              {billingCycle === 'yearly' && (
-                <Badge variant="secondary" className="ml-2">
-                  <Gift className="h-3 w-3 mr-1" />
-                  2 months free
-                </Badge>
-              )}
-            </div>
-          </div> */}
 
           {/* Pricing Cards */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-5xl mx-auto mb-16">

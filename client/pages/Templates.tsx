@@ -100,6 +100,9 @@ export default function Templates() {
   if (!user) {
     navigate('/signin');
     return;
+
+
+    
   }
 
   // Profile fetch
