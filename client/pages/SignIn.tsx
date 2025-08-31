@@ -69,25 +69,33 @@ export default function SignIn() {
   };
 
   const handleProfileInsert = async (user: any) => {
-  const { data: profile, error } = await supabase
+  const { data: profile, error: fetchError } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', user.id)
     .single();
 
+  if (fetchError && fetchError.code !== 'PGRST116') { // ignore "no rows" error
+    console.error("Profile fetch error:", fetchError.message);
+    return;
+  }
+
   if (profile) {
-    // Existing user, plan update karo agar zarurat ho
-    await supabase
+    const { error: updateError } = await supabase
       .from('profiles')
-      .update({ plan: 'Free' }) // ya 'Pro' user ke hisaab se
+      .update({ plan: 'Free' })
       .eq('id', user.id);
+
+    if (updateError) console.error("Profile update error:", updateError.message);
   } else {
-    // Naya user insert karo
-    await supabase
+    const { error: insertError } = await supabase
       .from('profiles')
       .insert([{ id: user.id, plan: 'Free' }]);
+
+    if (insertError) console.error("Profile insert error:", insertError.message);
   }
 };
+
 
 
   const handleSubmit = async (e: React.FormEvent) => {
