@@ -68,22 +68,27 @@ export default function SignIn() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleProfileInsert = async (user: SupabaseUser) => {
-    const { data: profile, error } = await supabase
+  const handleProfileInsert = async (user: any) => {
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single();
+
+  if (profile) {
+    // Existing user, plan update karo agar zarurat ho
+    await supabase
       .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
+      .update({ plan: 'Free' }) // ya 'Pro' user ke hisaab se
+      .eq('id', user.id);
+  } else {
+    // Naya user insert karo
+    await supabase
+      .from('profiles')
+      .insert([{ id: user.id, plan: 'Free' }]);
+  }
+};
 
-    if (!profile) {
-      const { data, error: insertError } = await supabase
-        .from('profiles')
-        .insert([{ id: user.id, plan: 'Free' }]);
-
-      if (insertError) console.error('Error inserting profile:', insertError);
-      else console.log('Profile created:', data);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
