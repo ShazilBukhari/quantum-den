@@ -6,11 +6,17 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error: any }>;
+  signUp: (
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string
+  ) => Promise<{ data: any; error: any }>; // 👈 yaha change
   signInWithProvider: (provider: 'google' | 'github') => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any }>;
 }
+
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -72,24 +78,31 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
-  const signUp = async (email: string, password: string, firstName: string, lastName: string) => {
-    try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            first_name: firstName,
-            last_name: lastName,
-            full_name: `${firstName} ${lastName}`,
-          },
+  const signUp = async (
+  email: string,
+  password: string,
+  firstName: string,
+  lastName: string
+) => {
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+          full_name: `${firstName} ${lastName}`,
         },
-      });
-      return { error };
-    } catch (error) {
-      return { error };
-    }
-  };
+      },
+    });
+
+    return { data, error }; // 👈 ab data bhi return karega
+  } catch (error) {
+    return { data: null, error }; // 👈 agar catch hua toh safe fallback
+  }
+};
+
 
   const signInWithProvider = async (provider: 'google' | 'github') => {
     try {

@@ -1,7 +1,27 @@
 import { supabase } from '@/lib/supabase';
 import { storage, type ResumeMeta, type ActivityEntry } from '@/utils/storage';
 
-// Helpers to map between DB snake_case and app camelCase
+// ---------- Profiles Types ----------
+export type Profile = {
+  id: string;
+  userId: string;
+  plan: 'Free' | 'Pro';
+  createdAt: string;
+  updatedAt: string;
+};
+
+// Helpers to map DB rows to Profile object
+function mapDbToProfile(row: any): Profile {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    plan: row.plan,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+// Existing Resume + Activity mapping...
 function mapDbToResume(row: any): ResumeMeta {
   return {
     id: row.id,
@@ -27,7 +47,53 @@ function canUseSupabase() {
   return typeof window !== 'undefined';
 }
 
+// ================== DATA METHODS ==================
 export const data = {
+  // ---------- PROFILES ----------
+  async getProfile(userId: string): Promise<Profile | null> {
+    if (!userId || !canUseSupabase()) return null;
+    try {
+      const { data: row, error } = await supabase
+        .from('profiles')
+        .select('id,user_id,plan,created_at,updated_at')
+        .eq('user_id', userId)
+        .single();
+      if (error || !row) throw error || new Error('Profile not found');
+      return mapDbToProfile(row);
+    } catch {
+      return null;
+    }
+  },
+
+  async createProfile(userId: string): Promise<Profile | null> {
+    if (!userId || !canUseSupabase()) return null;
+    try {
+      const { data: row, error } = await supabase
+        .from('profiles')
+        .insert({ user_id: userId, plan: 'Free' }) // default Free
+        .select('id,user_id,plan,created_at,updated_at')
+        .single();
+      if (error || !row) throw error || new Error('Insert failed');
+      return mapDbToProfile(row);
+    } catch {
+      return null;
+    }
+  },
+
+  async updatePlan(userId: string, plan: 'Free' | 'Pro'): Promise<void> {
+    if (!userId || !canUseSupabase()) return;
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ plan })
+        .eq('user_id', userId);
+      if (error) throw error;
+    } catch {
+      console.error('Failed to update plan');
+    }
+  },
+
+  // ---------- RESUMES ----------
   async getResumes(userId: string): Promise<ResumeMeta[]> {
     if (!userId || !canUseSupabase()) return storage.getResumes(userId || 'guest');
     try {
@@ -103,6 +169,7 @@ export const data = {
     }
   },
 
+  // ---------- ACTIVITY ----------
   async getActivity(userId: string): Promise<ActivityEntry[]> {
     if (!userId || !canUseSupabase()) return storage.getActivity(userId || 'guest');
     try {

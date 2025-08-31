@@ -3,6 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { GlassCard } from '@/components/GlassCard';
 import { Badge } from '@/components/ui/badge';
+import { supabase } from "@/lib/supabase"; // ya jaha tera supabase.ts file hai
+import { data } from "@/lib/data";         // wahi data.ts jo tu ne bheja tha
+
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import {
   CheckCircle,
@@ -85,15 +88,25 @@ export default function Pricing() {
     setSelectedPlan(plan);
   };
 
-  const handleStartFree = () => {
-    navigate('/get-started');
-  };
+  const handleStartFree = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user?.id) {
+    await data.updateProfile(user.id, { plan: "Free" });
+    navigate("/dashboard");
+  } else {
+    navigate("/get-started");
+  }
+};
 
-  const handleGoPro = () => {
-    // For now, redirect to get-started with a pro flag
-    // In a real app, this would redirect to a payment processor
-    navigate('/get-started?plan=pro');
-  };
+  const handleGoPro = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user?.id) {
+    await data.updateProfile(user.id, { plan: "Pro" });
+    navigate("/dashboard");
+  } else {
+    navigate("/get-started?plan=pro");
+  }
+};
 
   const handleCheckout = () => {
     // Simulate checkout process

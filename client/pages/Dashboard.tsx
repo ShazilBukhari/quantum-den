@@ -25,6 +25,8 @@ import {
   Copy,
   Upload,
 } from 'lucide-react';
+import { supabase } from "@/lib/supabase";
+
 
 export default function Dashboard() {
   const { user, loading } = useAuth();
@@ -39,20 +41,38 @@ export default function Dashboard() {
   const [portfolioViews, setPortfolioViews] = useState<number>(userId ? storage.getPortfolioViews(userId) : 0);
 
   useEffect(() => {
-    const run = async () => {
-      if (!userId) return;
-      setPlan(storage.getPlan(userId));
-      setOnboardingProgress(storage.getOnboarding(userId));
-      setPortfolioViews(storage.getPortfolioViews(userId));
-      const [list, act] = await Promise.all([
-        data.getResumes(userId),
-        data.getActivity(userId),
-      ]);
-      setResumes(list);
-      setActivity(act);
-    };
-    run();
-  }, [userId]);
+  const run = async () => {
+    if (!userId) return;
+
+    // 🟢 Profile table se plan laa
+    const { data: profile, error } = await supabase
+      .from("profiles")
+      .select("plan")
+      .eq("user_id", userId)
+      .single();
+
+    if (error) {
+      console.error("Error fetching profile:", error);
+      setPlan("Free"); // fallback
+    } else {
+      setPlan(profile?.plan || "Free");
+    }
+
+    // baki cheeze local storage + utils se
+    setOnboardingProgress(storage.getOnboarding(userId));
+    setPortfolioViews(storage.getPortfolioViews(userId));
+
+    const [list, act] = await Promise.all([
+      data.getResumes(userId),
+      data.getActivity(userId),
+    ]);
+    setResumes(list);
+    setActivity(act);
+  };
+
+  run();
+}, [userId]);
+
 
   const onboardingSteps = [
     { key: 'personalInfo', label: 'Add Personal Info', description: 'Name, contact details, and summary' },

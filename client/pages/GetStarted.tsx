@@ -7,6 +7,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { GlassCard } from '@/components/GlassCard';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
+
+
 import {
   Eye,
   EyeOff,
@@ -22,6 +24,7 @@ import {
   Zap,
   Gift
 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 export default function GetStarted() {
   const { signUp, signInWithProvider, loading } = useAuth();
@@ -85,28 +88,33 @@ export default function GetStarted() {
 
     setIsLoading(true);
 
-    try {
-      const { error } = await signUp(
-        formData.email,
-        formData.password,
-        formData.firstName,
-        formData.lastName
-      );
+   try {
+  const { data, error } = await signUp(
+    formData.email,
+    formData.password,
+    formData.firstName,
+    formData.lastName
+  );
 
-      if (error) {
-        setErrors({ general: error.message || 'Sign up failed. Please try again.' });
-      } else {
-        // Show success message for email verification
-        setErrors({
-          general: 'Account created! Please check your email to verify your account.'
-        });
-      }
-    } catch (error) {
-      setErrors({ general: 'An unexpected error occurred. Please try again.' });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  if (error) {
+    setErrors({
+      general: error.message || "Sign up failed. Please try again.",
+    });
+  } else if (data?.user) {
+    await supabase.from("profiles").upsert({
+      id: data.user.id, // 👈 id hi primary key hai profiles table me
+      plan: selectedPlan,
+    });
+
+    setErrors({
+      general:
+        "Account created! Please check your email to verify your account.",
+    });
+  }
+} finally {
+  setIsLoading(false);
+}
+
 
   const handleSocialSignup = async (provider: 'google' | 'github') => {
     try {
@@ -497,4 +505,5 @@ export default function GetStarted() {
       </div>
     </div>
   );
+  }
 }

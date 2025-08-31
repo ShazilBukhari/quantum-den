@@ -68,38 +68,49 @@ export default function Account() {
   const [lastActivity, setLastActivity] = useState<string>('—');
 
   useEffect(() => {
-    if (!userId) {
-      navigate('/signin');
-      return;
-    }
-    setPlan(storage.getPlan(userId));
-    setPortfolioViews(storage.getPortfolioViews(userId));
+  if (!userId) {
+    navigate('/signin');
+    return;
+  }
 
-    // Load profile from Supabase metadata
-    const fn = async () => {
-      const { data: u } = await supabase.auth.getUser();
-      const meta = u.user?.user_metadata || {};
+  const loadData = async () => {
+    // Profile fetch
+    const { data: profileRow, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("user_id", userId)
+      .single();
+
+    if (profileRow) {
       setProfile({
-        firstName: meta.first_name || meta.firstName || '',
-        lastName: meta.last_name || meta.lastName || '',
-        email: u.user?.email || '',
-        phone: meta.phone || '',
-        location: meta.location || '',
-        bio: meta.bio || '',
+        firstName: profileRow.first_name || "",
+        lastName: profileRow.last_name || "",
+        email: user.email || "",
+        phone: profileRow.phone || "",
+        location: profileRow.location || "",
+        bio: profileRow.bio || "",
       });
-      const [resumes, activity] = await Promise.all([data.getResumes(userId), data.getActivity(userId)]);
-      setResumesCount(resumes.length);
-      setLastActivity(activity[0]?.time ? new Date(activity[0].time).toLocaleString() : '—');
+      setPlan(profileRow.plan || "Free");
+    }
 
-      // Load settings from localStorage
-      try {
-        const raw = localStorage.getItem(`rpg:${userId}:settings`);
-        if (raw) setSettings({ ...settings, ...(JSON.parse(raw) || {}) });
-      } catch {}
-    };
-    fn();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
+    // Resumes & activity
+    const [resumes, activity] = await Promise.all([data.getResumes(userId), data.getActivity(userId)]);
+    setResumesCount(resumes.length);
+    setLastActivity(activity[0]?.time ? new Date(activity[0].time).toLocaleString() : '—');
+
+    // Settings from localStorage
+    try {
+      const raw = localStorage.getItem(`rpg:${userId}:settings`);
+      if (raw) setSettings({ ...settings, ...(JSON.parse(raw) || {}) });
+    } catch {}
+
+    // Portfolio views
+    setPortfolioViews(storage.getPortfolioViews(userId));
+  };
+
+  loadData();
+}, [userId]);
+
 
   useEffect(() => {
     if (!userId) return;
@@ -123,16 +134,19 @@ export default function Account() {
   const handleSaveProfile = async () => {
     try {
       const full_name = `${profile.firstName} ${profile.lastName}`.trim();
-      const { error } = await supabase.auth.updateUser({
-        data: {
-          first_name: profile.firstName,
-          last_name: profile.lastName,
-          full_name,
-          phone: profile.phone,
-          location: profile.location,
-          bio: profile.bio,
-        },
-      });
+      const { error } = await supabase.from("profiles").upsert({
+  user_id: userId,
+  first_name: profile.firstName,
+  last_name: profile.lastName,
+  full_name,
+  phone: profile.phone,
+  location: profile.location,
+  bio: profile.bio,
+  plan,  // ✅ add plan here
+  updated_at: new Date().toISOString(),
+});
+
+
       if (error) throw error;
       setIsEditing(false);
       await data.addActivity(userId, { action: 'Profile updated', details: full_name });

@@ -269,14 +269,28 @@ export default function Index() {
                 badges={template.badges}
                 onPreview={async () => {
                   if (!user) return navigate('/signin');
-                  const plan = storage.getPlan(user.id);
+                 const { data: profile, error } = await supabase
+                  .from("profiles")
+                  .select("plan")
+                  .eq("id", user.id)
+                .single();
+
+const plan = profile?.plan || "free";  // default free
+
                   const list = await data.getResumes(user.id);
                   if (plan === 'Free' && list.length >= 1) { setShowUpgrade(true); return; }
                   navigate('/templates');
                 }}
                 onTryBuilder={async () => {
                   if (!user) return navigate('/signin');
-                  const plan = storage.getPlan(user.id);
+                  const { data: profile, error } = await supabase
+                  .from("profiles")
+                  .select("plan")
+                  .eq("id", user.id)
+                  .single();
+
+const plan = profile?.plan || "free";  // default free
+
                   const list = await data.getResumes(user.id);
                   if (plan === 'Free' && list.length >= 1) { setShowUpgrade(true); return; }
                   navigate('/templates');

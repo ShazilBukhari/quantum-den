@@ -99,7 +99,9 @@ export default function Templates() {
       navigate('/signin');
       return;
     }
-    const plan = storage.getPlan(user.id);
+    const profile = await data.getProfile(user.id);
+const plan = profile?.plan || "Free";
+
 const list = await data.getResumes(user.id) || [];
 if (plan === 'Free' && list.length >= 1) {
   setShowUpgrade(true);
@@ -125,7 +127,9 @@ if (plan === 'Free' && list.length >= 1) {
       navigate('/signin');
       return;
     }
-    const plan = storage.getPlan(user.id);
+    const profile = await data.getProfile(user.id);
+const plan = profile?.plan || "Free";
+
     const list = await data.getResumes(user.id);
     if (plan === 'Free' && list.length >= 1) {
       setShowUpgrade(true);
