@@ -160,11 +160,11 @@ export default function Templates() {
     const profile = await data.getProfile(user.id);
 const plan = profile?.plan || "Free";
 
-    const list = await data.getResumes(user.id);
-    if (plan === 'Free' && list.length >= 1) {
-      setShowUpgrade(true);
-      return;
-    }
+    const list = await data.getResumes(user.id) || [];
+if (plan === 'Free' && list.length >= 1) {
+  setShowUpgrade(true);
+  return;
+}
 
     const validation = validateResumeData(resumeData);
     if (!validation.isValid) {
