@@ -88,25 +88,58 @@ export default function Pricing() {
     setSelectedPlan(plan);
   };
 
-  const handleStartFree = async () => {
-  const { data: { user } } = await supabase.auth.getUser();
+ 
+
+const handleStartFree = async () => {
+  const { data: { user }, error } = await supabase.auth.getUser();
+
+  if (error) {
+    console.error("Auth error:", error.message);
+    return;
+  }
+
   if (user?.id) {
-    await data.updateProfile(user.id, { plan: "Free" });
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update({ plan: "Free" })
+      .eq("id", user.id);
+
+    if (updateError) {
+      console.error("Update error:", updateError.message);
+      return;
+    }
+
     navigate("/dashboard");
   } else {
     navigate("/get-started");
   }
 };
 
-  const handleGoPro = async () => {
-  const { data: { user } } = await supabase.auth.getUser();
+const handleGoPro = async () => {
+  const { data: { user }, error } = await supabase.auth.getUser();
+
+  if (error) {
+    console.error("Auth error:", error.message);
+    return;
+  }
+
   if (user?.id) {
-    await data.updateProfile(user.id, { plan: "Pro" });
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update({ plan: "Pro" })
+      .eq("id", user.id);
+
+    if (updateError) {
+      console.error("Update error:", updateError.message);
+      return;
+    }
+
     navigate("/dashboard");
   } else {
     navigate("/get-started?plan=pro");
   }
 };
+
 
   const handleCheckout = () => {
     // Simulate checkout process
@@ -209,15 +242,15 @@ export default function Pricing() {
                   </span>
                 </div>
                 <Button
-                  className="w-full"
-                  variant={selectedPlan === 'free' ? 'default' : 'outline'}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleStartFree();
-                  }}
-                >
-                  Start Free
-                </Button>
+      className="w-full"
+      variant={selectedPlan === 'free' ? 'default' : 'outline'}
+      onClick={() => {
+        handleSelectPlan('free');
+        handleStartFree();
+      }}
+    >
+      Start Free
+    </Button>
               </div>
               
               <div className="space-y-4">
@@ -269,16 +302,16 @@ export default function Pricing() {
                   )}
                 </div>
                 <Button
-                  className="w-full"
-                  variant={selectedPlan === 'pro' ? 'default' : 'secondary'}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleGoPro();
-                  }}
-                >
-                  <Zap className="h-4 w-4 mr-2" />
-                  Go Pro
-                </Button>
+  className="w-full"
+  variant={selectedPlan === 'pro' ? 'default' : 'secondary'}
+  onClick={() => {
+    handleSelectPlan('pro');
+    handleGoPro();
+  }}
+>
+  <Zap className="h-4 w-4 mr-2" />
+  Go Pro
+</Button>
               </div>
               
               <div className="space-y-4">
