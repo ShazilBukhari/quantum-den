@@ -158,51 +158,44 @@ export default function Templates() {
     return;
   }
 
-  // Profile aur plan fetch karna
   const profile = await data.getProfile(user.id);
-  const plan = profile?.plan ? profile.plan.toLowerCase() : "free";
+  const plan = profile?.plan || "Free";
 
-  // Resumes list nikalna
   const list = await data.getResumes(user.id);
 
-  // Agar plan free hai aur pehle se ek resume hai toh upgrade popup dikhao
-  if (plan === "free" && list.length >= 1) {
+  // Free plan ka limit
+  if (plan === 'Free' && list.length >= 1) {
     setShowUpgrade(true);
     return;
   }
 
-  // Data validation
+  // Resume validation
   const validation = validateResumeData(resumeData);
   if (!validation.isValid) {
-    alert(
-      `Please fix the following errors before downloading:\n${validation.errors.join(
-        "\n"
-      )}`
-    );
+    alert(`Please fix the following errors before downloading:\n${validation.errors.join('\n')}`);
     return;
   }
 
   setIsGeneratingPDF(true);
   try {
-    await generatePDF("resume-preview", {
-      filename: `${
-        resumeData.contact.fullName || "resume"
-      }_${selectedTemplate}.pdf`,
+    await generatePDF('resume-preview', {
+      filename: `${resumeData.contact?.fullName || 'resume'}_${selectedTemplate || 'default'}.pdf`,
       quality: 3.0,
-      format: "a4",
+      format: 'a4'
     });
-  } catch (error: any) {
-    if (error?.code === "UPGRADE_REQUIRED" || error instanceof UpgradeRequiredError) {
+  } catch (error) {
+    // Only handle upgrade error for Free plan (optional)
+    if (plan === 'Free' && ((error as any)?.code === 'UPGRADE_REQUIRED' || error instanceof UpgradeRequiredError)) {
       setShowUpgrade(true);
       return;
     }
-    console.error("Error generating PDF:", error);
-    alert("Failed to generate PDF. Please try again.");
+
+    console.error('Error generating PDF:', error);
+    alert('Failed to generate PDF. Please try again.');
   } finally {
     setIsGeneratingPDF(false);
   }
 };
-
 
 
   const renderTemplate = () => {
