@@ -153,43 +153,59 @@ export default function Templates() {
   };
 
   const handleDownloadPDF = async () => {
-    if (!user) {
-      navigate('/signin');
-      return;
-    }
-    const profile = await data.getProfile(user.id);
-const plan = profile?.plan || "Free";
+  if (!user) {
+    navigate('/signin');
+    return;
+  }
 
-    const list = await data.getResumes(user.id);
-    if (plan === 'Free' && list.length >= 1) {
+  // Profile fetch from Supabase
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('plan')
+    .eq('id', user.id)
+    .single();
+
+  const plan = profiles?.plan || "Free";
+
+  // Resume list fetch
+  const { data: resumes } = await supabase
+    .from('resumes')
+    .select('*')
+    .eq('user_id', user.id);
+
+  // Free plan restriction
+  if (plan === 'Free' && resumes?.length >= 1) {
+    setShowUpgrade(true);
+    return;
+  }
+
+  // Validate resume data
+  const validation = validateResumeData(resumeData);
+  if (!validation.isValid) {
+    alert(`Please fix the following errors before downloading:\n${validation.errors.join('\n')}`);
+    return;
+  }
+
+  // Generate PDF
+  setIsGeneratingPDF(true);
+  try {
+    await generatePDF('resume-preview', {
+      filename: `${resumeData.contact.fullName || 'resume'}_${selectedTemplate}.pdf`,
+      quality: 3.0,
+      format: 'a4'
+    });
+  } catch (error) {
+    if ((error as any)?.code === 'UPGRADE_REQUIRED' || error instanceof UpgradeRequiredError) {
       setShowUpgrade(true);
       return;
     }
+    console.error('Error generating PDF:', error);
+    alert('Failed to generate PDF. Please try again.');
+  } finally {
+    setIsGeneratingPDF(false);
+  }
+};
 
-    const validation = validateResumeData(resumeData);
-    if (!validation.isValid) {
-      alert(`Please fix the following errors before downloading:\n${validation.errors.join('\n')}`);
-      return;
-    }
-
-    setIsGeneratingPDF(true);
-    try {
-      await generatePDF('resume-preview', {
-        filename: `${resumeData.contact.fullName || 'resume'}_${selectedTemplate}.pdf`,
-        quality: 3.0,
-        format: 'a4'
-      });
-    } catch (error) {
-      if ((error as any)?.code === 'UPGRADE_REQUIRED' || error instanceof UpgradeRequiredError) {
-        setShowUpgrade(true);
-        return;
-      }
-      console.error('Error generating PDF:', error);
-      alert('Failed to generate PDF. Please try again.');
-    } finally {
-      setIsGeneratingPDF(false);
-    }
-  };
 
   const renderTemplate = () => {
     const commonProps = {
