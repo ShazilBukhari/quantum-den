@@ -161,7 +161,7 @@ export default function Templates() {
 const plan = profile?.plan || "Free";
 
     const list = await data.getResumes(user.id) || [];
-if (plan === 'Free' && list.length >= 1) {
+if (plan === 'Pro' && list.length >= 1) {
   setShowUpgrade(true);
   return;
 }
