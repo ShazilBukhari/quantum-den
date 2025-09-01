@@ -158,53 +158,51 @@ export default function Templates() {
     return;
   }
 
-  // Profile fetch from Supabase
-  const { data: profiles } = await supabase
-    .from('profiles')
-    .select('plan')
-    .eq('id', user.id)
-    .single();
+  // Profile aur plan fetch karna
+  const profile = await data.getProfile(user.id);
+  const plan = profile?.plan ? profile.plan.toLowerCase() : "free";
 
-  const plan = profiles?.plan || "Free";
+  // Resumes list nikalna
+  const list = await data.getResumes(user.id);
 
-  // Resume list fetch
-  const { data: resumes } = await supabase
-    .from('resumes')
-    .select('*')
-    .eq('user_id', user.id);
-
-  // Free plan restriction
-  if (plan === 'Free' && resumes?.length >= 1) {
+  // Agar plan free hai aur pehle se ek resume hai toh upgrade popup dikhao
+  if (plan === "free" && list.length >= 1) {
     setShowUpgrade(true);
     return;
   }
 
-  // Validate resume data
+  // Data validation
   const validation = validateResumeData(resumeData);
   if (!validation.isValid) {
-    alert(`Please fix the following errors before downloading:\n${validation.errors.join('\n')}`);
+    alert(
+      `Please fix the following errors before downloading:\n${validation.errors.join(
+        "\n"
+      )}`
+    );
     return;
   }
 
-  // Generate PDF
   setIsGeneratingPDF(true);
   try {
-    await generatePDF('resume-preview', {
-      filename: `${resumeData.contact.fullName || 'resume'}_${selectedTemplate}.pdf`,
+    await generatePDF("resume-preview", {
+      filename: `${
+        resumeData.contact.fullName || "resume"
+      }_${selectedTemplate}.pdf`,
       quality: 3.0,
-      format: 'a4'
+      format: "a4",
     });
-  } catch (error) {
-    if ((error as any)?.code === 'UPGRADE_REQUIRED' || error instanceof UpgradeRequiredError) {
+  } catch (error: any) {
+    if (error?.code === "UPGRADE_REQUIRED" || error instanceof UpgradeRequiredError) {
       setShowUpgrade(true);
       return;
     }
-    console.error('Error generating PDF:', error);
-    alert('Failed to generate PDF. Please try again.');
+    console.error("Error generating PDF:", error);
+    alert("Failed to generate PDF. Please try again.");
   } finally {
     setIsGeneratingPDF(false);
   }
 };
+
 
 
   const renderTemplate = () => {
