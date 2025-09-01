@@ -184,15 +184,16 @@ export default function Templates() {
       format: 'a4'
     });
   } catch (error) {
-    // Only handle upgrade error for Free plan (optional)
-    if (plan === 'Free' && ((error as any)?.code === 'UPGRADE_REQUIRED' || error instanceof UpgradeRequiredError)) {
-      setShowUpgrade(true);
-      return;
-    }
+  // Only Free plan users ko upgrade dikhao
+  if (plan === 'Free' && ((error as any)?.code === 'UPGRADE_REQUIRED' || error instanceof UpgradeRequiredError)) {
+    setShowUpgrade(true);
+    return;
+  }
 
-    console.error('Error generating PDF:', error);
-    alert('Failed to generate PDF. Please try again.');
-  } finally {
+  console.error('Error generating PDF:', error);
+  alert('Failed to generate PDF. Please try again.');
+}
+ finally {
     setIsGeneratingPDF(false);
   }
 };
