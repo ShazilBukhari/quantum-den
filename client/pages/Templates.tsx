@@ -153,51 +153,43 @@ export default function Templates() {
   };
 
   const handleDownloadPDF = async () => {
-  if (!user) {
-    navigate('/signin');
-    return;
-  }
+    if (!user) {
+      navigate('/signin');
+      return;
+    }
+    const profile = await data.getProfile(user.id);
+const plan = profile?.plan || "Free";
 
-  const profile = await data.getProfile(user.id);
-  const plan = profile?.plan || "Free";
+    const list = await data.getResumes(user.id);
+    if (plan === 'Free' && list.length >= 1) {
+      setShowUpgrade(true);
+      return;
+    }
 
-  const list = await data.getResumes(user.id);
+    const validation = validateResumeData(resumeData);
+    if (!validation.isValid) {
+      alert(`Please fix the following errors before downloading:\n${validation.errors.join('\n')}`);
+      return;
+    }
 
-  // Free plan ka limit
-  if (plan === 'Free' && list.length >= 1) {
-    setShowUpgrade(true);
-    return;
-  }
-
-  // Resume validation
-  const validation = validateResumeData(resumeData);
-  if (!validation.isValid) {
-    alert(`Please fix the following errors before downloading:\n${validation.errors.join('\n')}`);
-    return;
-  }
-
-  setIsGeneratingPDF(true);
-  try {
-    await generatePDF('resume-preview', {
-      filename: `${resumeData.contact?.fullName || 'resume'}_${selectedTemplate || 'default'}.pdf`,
-      quality: 3.0,
-      format: 'a4'
-    });
-  } catch (error) {
-  // Only Free plan users ko upgrade dikhao
-  if (plan === 'Free' && ((error as any)?.code === 'UPGRADE_REQUIRED' || error instanceof UpgradeRequiredError)) {
-    setShowUpgrade(true);
-    return;
-  }
-
-  console.error('Error generating PDF:', error);
-  alert('Failed to generate PDF. Please try again.');
-}
- finally {
-    setIsGeneratingPDF(false);
-  }
-};
-
+    setIsGeneratingPDF(true);
+    try {
+      await generatePDF('resume-preview', {
+        filename: `${resumeData.contact.fullName || 'resume'}_${selectedTemplate}.pdf`,
+        quality: 3.0,
+        format: 'a4'
+      });
+    } catch (error) {
+      if ((error as any)?.code === 'UPGRADE_REQUIRED' || error instanceof UpgradeRequiredError) {
+        setShowUpgrade(true);
+        return;
+      }
+      console.error('Error generating PDF:', error);
+      alert('Failed to generate PDF. Please try again.');
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
 
   const renderTemplate = () => {
     const commonProps = {
